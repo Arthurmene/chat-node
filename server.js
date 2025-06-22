@@ -8,19 +8,22 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-mongoose.connect('mongodb+srv://arthur:Lola2170%40@cluster0.dm40ncb.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0', {
+// Conexão com o MongoDB (ajuste se necessário)
+mongoose.connect('mongodb+srv://arthur:Lola2170@cluster0.dm40ncb.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
-  console.log('MongoDB conectado');
+  console.log('✅ MongoDB conectado');
 }).catch(err => {
-  console.log('Erro ao conectar MongoDB:', err);
+  console.error('❌ Erro ao conectar no MongoDB:', err);
 });
 
+// Modelo de Mensagem
 const mensagemSchema = new mongoose.Schema({
   nome: String,
   texto: String,
@@ -28,8 +31,9 @@ const mensagemSchema = new mongoose.Schema({
 });
 const Mensagem = mongoose.model('Mensagem', mensagemSchema, 'mensagems');
 
+// WebSocket
 io.on('connection', socket => {
-  console.log('Usuário conectado');
+  console.log('🔌 Novo usuário conectado');
 
   socket.on('novaMensagem', async (msgData) => {
     const msg = new Mensagem(msgData);
@@ -38,26 +42,29 @@ io.on('connection', socket => {
   });
 });
 
+// API REST
 app.get('/mensagens', async (req, res) => {
-  const msgs = await Mensagem.find().sort({ data: 1 });
-  res.send(msgs);
+  const mensagens = await Mensagem.find().sort({ data: 1 });
+  res.send(mensagens);
 });
 
 app.delete('/mensagens', async (req, res) => {
+  const nome = req.query.nome;
+  if (nome !== 'Lola2170') {
+    return res.status(403).json({ erro: 'Apenas Lola2170 pode apagar as mensagens' });
+  }
+
   try {
-    const nome = req.query.nome;
-    if (nome !== 'Lola2170') {
-      return res.status(403).send({ erro: 'Usuário não autorizado para apagar mensagens' });
-    }
     await Mensagem.deleteMany({});
     io.emit('chatLimpo');
-    res.send({ mensagem: 'Mensagens apagadas com sucesso' });
+    res.json({ mensagem: 'Mensagens apagadas com sucesso!' });
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).json({ erro: 'Erro ao apagar mensagens', detalhes: err });
   }
 });
 
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
