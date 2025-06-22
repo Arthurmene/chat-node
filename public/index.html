@@ -23,33 +23,41 @@
 
 <button id="limparBtn">🧹 Limpar Conversas</button>
 
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
+  const socket = io();
   const chat = document.getElementById('chat');
   const form = document.getElementById('msgForm');
 
-  // Função para carregar mensagens
+  // Carregar mensagens iniciais
   async function carregarMensagens() {
-    const res = await fetch('http://localhost:3000/mensagens');
-
+    const res = await fetch('/mensagens');
     const mensagens = await res.json();
     chat.innerHTML = mensagens.map(m => `<p><strong>${m.nome}:</strong> ${m.texto}</p>`).join('');
     chat.scrollTop = chat.scrollHeight;
   }
 
-  // Enviar mensagem
-  form.addEventListener('submit', async e => {
+  carregarMensagens();
+
+  // Receber nova mensagem em tempo real
+  socket.on('mensagemRecebida', (m) => {
+    const p = document.createElement('p');
+    p.innerHTML = `<strong>${m.nome}:</strong> ${m.texto}`;
+    chat.appendChild(p);
+    chat.scrollTop = chat.scrollHeight;
+  });
+
+  // Enviar nova mensagem
+  form.addEventListener('submit', e => {
     e.preventDefault();
     const nome = document.getElementById('nome').value.trim();
     const texto = document.getElementById('texto').value.trim();
     if (!nome || !texto) return;
-    await fetch('/mensagens', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, texto })
-    });
+    socket.emit('novaMensagem', { nome, texto });
     form.reset();
-    carregarMensagens();
   });
+
+
 
   carregarMensagens();
   // Atualiza as mensagens a cada 3 segundos
