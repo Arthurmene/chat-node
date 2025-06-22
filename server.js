@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Substitua pelo seu link real do MongoDB (com usuário e senha corretos)
-mongoose.connect('mongodb+srv://arthur:Lola2170%40@cluster0.dm40ncb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect('mongodb+srv://arthur:Lola2170%40@cluster0.dm40ncb.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
@@ -27,7 +27,8 @@ const mensagemSchema = new mongoose.Schema({
   texto: String,
   data: { type: Date, default: Date.now }
 });
-const Mensagem = mongoose.model('Mensagem', mensagemSchema);
+const Mensagem = mongoose.model('Mensagem', mensagemSchema, 'mensagems');
+
 
 io.on('connection', socket => {
   console.log('Usuário conectado');
