@@ -47,6 +47,11 @@
     chat.scrollTop = chat.scrollHeight;
   });
 
+  // Atualizar chat ao limpar mensagens
+  socket.on('chatLimpo', () => {
+    chat.innerHTML = '';
+  });
+
   // Enviar nova mensagem
   form.addEventListener('submit', e => {
     e.preventDefault();
@@ -56,13 +61,6 @@
     socket.emit('novaMensagem', { nome, texto });
     form.reset();
   });
-
-
-
-  carregarMensagens();
-  // Atualiza as mensagens a cada 3 segundos
-  setInterval(carregarMensagens, 3000);
-
 
   document.getElementById('limparBtn').addEventListener('click', async () => {
     const nome = document.getElementById('nome').value.trim();
@@ -75,8 +73,7 @@
     const confirmar = confirm('Tem certeza que deseja apagar todas as conversas?');
     if (!confirmar) return;
 
-    await fetch('/mensagens', { method: 'DELETE' });
-    carregarMensagens();
+    await fetch('/mensagens?nome=' + encodeURIComponent(nome), { method: 'DELETE' });
   });
 </script>
 

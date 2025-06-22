@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Conectar ao MongoDB
+// Substitua pelo seu link real do MongoDB (com usuário e senha corretos)
 mongoose.connect('mongodb+srv://arthur:Lola2170%40@cluster0.dm40ncb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -29,20 +29,33 @@ const mensagemSchema = new mongoose.Schema({
 });
 const Mensagem = mongoose.model('Mensagem', mensagemSchema);
 
-// Enviar mensagem via Socket.IO
 io.on('connection', socket => {
   console.log('Usuário conectado');
 
   socket.on('novaMensagem', async (msgData) => {
     const msg = new Mensagem(msgData);
     await msg.save();
-    io.emit('mensagemRecebida', msg); // envia para todos os clientes
+    io.emit('mensagemRecebida', msg);
   });
 });
 
 app.get('/mensagens', async (req, res) => {
   const msgs = await Mensagem.find().sort({ data: 1 });
   res.send(msgs);
+});
+
+app.delete('/mensagens', async (req, res) => {
+  try {
+    const nome = req.query.nome;
+    if (nome !== 'Lola2170') {
+      return res.status(403).send({ erro: 'Usuário não autorizado para apagar mensagens' });
+    }
+    await Mensagem.deleteMany({});
+    io.emit('chatLimpo');
+    res.send({ mensagem: 'Mensagens apagadas com sucesso' });
+  } catch (err) {
+    res.status(500).send(err);
+  }
 });
 
 const PORT = process.env.PORT || 3000;
