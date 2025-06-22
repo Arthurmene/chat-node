@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat Simples</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+    #chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; }
+    #msgForm { margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Chat Simples</h1>
+
+<div id="chat"></div>
+
+<form id="msgForm">
+  <input type="text" id="nome" placeholder="Seu nome" required />
+  <input type="text" id="texto" placeholder="Mensagem" required />
+  <button type="submit">Enviar</button>
+</form>
+
+<button id="limparBtn">🧹 Limpar Conversas</button>
+
+<script>
+  const chat = document.getElementById('chat');
+  const form = document.getElementById('msgForm');
+
+  // Função para carregar mensagens
+  async function carregarMensagens() {
+    const res = await fetch('http://localhost:3000/mensagens');
+
+    const mensagens = await res.json();
+    chat.innerHTML = mensagens.map(m => `<p><strong>${m.nome}:</strong> ${m.texto}</p>`).join('');
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  // Enviar mensagem
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const nome = document.getElementById('nome').value.trim();
+    const texto = document.getElementById('texto').value.trim();
+    if (!nome || !texto) return;
+    await fetch('/mensagens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, texto })
+    });
+    form.reset();
+    carregarMensagens();
+  });
+
+  carregarMensagens();
+  // Atualiza as mensagens a cada 3 segundos
+  setInterval(carregarMensagens, 3000);
+
+
+  document.getElementById('limparBtn').addEventListener('click', async () => {
+    const nome = document.getElementById('nome').value.trim();
+
+    if (nome !== 'Lola2170') {
+      alert('Você não pode apagar as mensagens!');
+      return;
+    }
+
+    const confirmar = confirm('Tem certeza que deseja apagar todas as conversas?');
+    if (!confirmar) return;
+
+    await fetch('/mensagens', { method: 'DELETE' });
+    carregarMensagens();
+  });
+</script>
+
+</body>
+</html>
