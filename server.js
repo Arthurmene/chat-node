@@ -1,65 +1,63 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 
-const chat = document.getElementById('chat');
-const form = document.getElementById('msgForm');
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-function formatTimestamp(dateStr) {
-  const date = new Date(dateStr);
-  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-}
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-// Carregar mensagens iniciais
-async function carregarMensagens() {
-  const res = await fetch('/mensagens');
-  const mensagens = await res.json();
-  chat.innerHTML = mensagens.map(m => {
-    const own = m.nome.trim().toLowerCase() === document.getElementById('nome').value.trim().toLowerCase();
-    return `
-      <div class="msg ${own ? 'own' : 'other'}">
-        <strong>${m.nome}</strong>
-        ${m.texto}
-        <div class="timestamp">${formatTimestamp(m.data)}</div>
-      </div>
-    `;
-  }).join('');
-  chat.scrollTop = chat.scrollHeight;
-}
-
-carregarMensagens();
-
-// Receber nova mensagem em tempo real via Socket.IO
-socket.on('mensagemRecebida', (m) => {
-  const own = m.nome.trim().toLowerCase() === document.getElementById('nome').value.trim().toLowerCase();
-  const div = document.createElement('div');
-  div.classList.add('msg', own ? 'own' : 'other');
-  div.innerHTML = `<strong>${m.nome}</strong>${m.texto}<div class="timestamp">${formatTimestamp(m.data)}</div>`;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+// Conectar ao MongoDB
+mongoose.connect('mongodb+srv://arthur:Lola2170%40@cluster0.dm40ncb.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('MongoDB conectado');
+}).catch(err => {
+  console.log('Erro ao conectar MongoDB:', err);
 });
 
-// Enviar nova mensagem via Socket.IO
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  const nome = document.getElementById('nome').value.trim();
-  const texto = document.getElementById('texto').value.trim();
-  if (!nome || !texto) return;
-  socket.emit('novaMensagem', { nome, texto });
-  form.reset();
+// Modelo
+const mensagemSchema = new mongoose.Schema({
+  nome: String,
+  texto: String,
+  data: { type: Date, default: Date.now }
+});
+const Mensagem = mongoose.model('Mensagem', mensagemSchema, 'mensagems');
+
+// Socket.io
+io.on('connection', socket => {
+  console.log('Usuário conectado');
+
+  socket.on('novaMensagem', async (msgData) => {
+    const msg = new Mensagem(msgData);
+    await msg.save();
+    io.emit('mensagemRecebida', msg);
+  });
 });
 
-// Atualiza as mensagens a cada 3 segundos para garantir sincronização
-setInterval(carregarMensagens, 3000);
+app.get('/mensagens', async (req, res) => {
+  const msgs = await Mensagem.find().sort({ data: 1 });
+  res.send(msgs);
+});
 
-// Botão limpar mensagens (só para usuário 'Lola2170')
-document.getElementById('limparBtn').addEventListener('click', async () => {
-  const nome = document.getElementById('nome').value.trim();
+app.delete('/mensagens', async (req, res) => {
+  const nome = req.query.nome;
   if (nome !== 'Lola2170') {
-    alert('Você não pode apagar as mensagens!');
-    return;
+    return res.status(403).send({ erro: 'Usuário não autorizado para apagar mensagens' });
   }
-  const confirmar = confirm('Tem certeza que deseja apagar todas as conversas?');
-  if (!confirmar) return;
-  
-  // Passa o nome no query param para autenticar
-  await fetch('/mensagens?nome=Lola2170', { method: 'DELETE' });
-  carregarMensagens();
+
+  await Mensagem.deleteMany({});
+  io.emit('chatLimpo');
+  res.send({ mensagem: 'Mensagens apagadas com sucesso' });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
