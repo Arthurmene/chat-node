@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <title>Chat Simples</title>
   <style>
-    /* Reset básico */
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #f0f2f5;
@@ -46,7 +43,6 @@
       flex-direction: column;
       gap: 12px;
     }
-    /* Mensagens */
     .msg {
       max-width: 70%;
       padding: 12px 16px;
@@ -80,7 +76,6 @@
       text-align: right;
       opacity: 0.7;
     }
-
     form {
       display: flex;
       padding: 15px;
@@ -95,11 +90,6 @@
       border-radius: 25px;
       font-size: 1rem;
       outline: none;
-      transition: border-color 0.3s;
-    }
-    input[type="text"]:focus {
-      border-color: #4267B2;
-      box-shadow: 0 0 5px #4267B2;
     }
     button {
       background: #4267B2;
@@ -110,12 +100,7 @@
       padding: 0 20px;
       border-radius: 25px;
       cursor: pointer;
-      transition: background-color 0.3s;
     }
-    button:hover {
-      background: #365899;
-    }
-
     #limparBtn {
       margin: 10px 15px;
       padding: 10px;
@@ -125,32 +110,11 @@
       color: white;
       font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.3s;
     }
-    #limparBtn:hover {
-      background: #c53030;
-    }
-
-    /* Scroll personalizado */
-    #chat::-webkit-scrollbar {
-      width: 8px;
-    }
-    #chat::-webkit-scrollbar-thumb {
-      background-color: #4267B2;
-      border-radius: 4px;
-    }
-
-    /* Responsivo */
     @media (max-width: 520px) {
       #container {
         height: 100vh;
         border-radius: 0;
-      }
-      header {
-        font-size: 1.3rem;
-      }
-      button, input[type="text"] {
-        font-size: 0.9rem;
       }
     }
   </style>
@@ -182,12 +146,12 @@
       return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
-    // Carregar mensagens iniciais
     async function carregarMensagens() {
       const res = await fetch('/mensagens');
       const mensagens = await res.json();
+      const nomeAtual = document.getElementById('nome').value.trim().toLowerCase();
       chat.innerHTML = mensagens.map(m => {
-        const own = m.nome.trim().toLowerCase() === document.getElementById('nome').value.trim().toLowerCase();
+        const own = m.nome.trim().toLowerCase() === nomeAtual;
         return `
           <div class="msg ${own ? 'own' : 'other'}">
             <strong>${m.nome}</strong>
@@ -200,10 +164,11 @@
     }
 
     carregarMensagens();
+    setInterval(carregarMensagens, 3000);
 
-    // Receber nova mensagem em tempo real
     socket.on('mensagemRecebida', (m) => {
-      const own = m.nome.trim().toLowerCase() === document.getElementById('nome').value.trim().toLowerCase();
+      const nomeAtual = document.getElementById('nome').value.trim().toLowerCase();
+      const own = m.nome.trim().toLowerCase() === nomeAtual;
       const div = document.createElement('div');
       div.classList.add('msg', own ? 'own' : 'other');
       div.innerHTML = `<strong>${m.nome}</strong>${m.texto}<div class="timestamp">${formatTimestamp(m.data)}</div>`;
@@ -211,7 +176,6 @@
       chat.scrollTop = chat.scrollHeight;
     });
 
-    // Enviar nova mensagem
     form.addEventListener('submit', e => {
       e.preventDefault();
       const nome = document.getElementById('nome').value.trim();
@@ -221,20 +185,18 @@
       form.reset();
     });
 
-    // Atualiza as mensagens a cada 3 segundos
-    setInterval(carregarMensagens, 3000);
-
-    // Limpar mensagens (somente usuário Lola2170)
     document.getElementById('limparBtn').addEventListener('click', async () => {
       const nome = document.getElementById('nome').value.trim();
       if (nome !== 'Lola2170') {
         alert('Você não pode apagar as mensagens!');
         return;
       }
+
       const confirmar = confirm('Tem certeza que deseja apagar todas as conversas?');
       if (!confirmar) return;
-      await fetch('/mensagens', { method: 'DELETE' });
-      carregarMensagens();
+
+      await fetch(`/mensagens?nome=${encodeURIComponent(nome)}`, { method: 'DELETE' });
+      chat.innerHTML = '';
     });
   </script>
 
