@@ -127,7 +127,7 @@
     }
 
     async function carregarMensagens() {
-      const res = await fetch('/mensagens');
+      const res = await fetch('https://chat-node-v9x1.onrender.com/mensagens');
       const mensagens = await res.json();
       chat.innerHTML = mensagens.map(m => {
         const own = m.nome.toLowerCase() === document.getElementById('nome').value.toLowerCase();
@@ -170,7 +170,7 @@
       }
       const confirmar = confirm('Deseja apagar todas as mensagens?');
       if (!confirmar) return;
-      await fetch('/mensagens?nome=Lola2170', { method: 'DELETE' });
+      await fetch('https://chat-node-v9x1.onrender.com/mensagens?nome=Lola2170', { method: 'DELETE' });
       carregarMensagens();
     });
   </script>
